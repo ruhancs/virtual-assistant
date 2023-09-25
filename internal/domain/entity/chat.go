@@ -1,6 +1,10 @@
 package entity
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
 
 type ChatConfig struct {
 	Model            *Model
@@ -24,7 +28,40 @@ type Chat struct {
 	Config               *ChatConfig
 }
 
-func (c *Chat) AddMessage(m *Message)error {
+func NewChat(userID string, initialSystemMessage *Message, chatConfig *ChatConfig) (*Chat, error) {
+	chat := &Chat{
+		ID:                   uuid.New().String(),
+		UserID:               userID,
+		InitialSystemMessage: initialSystemMessage,
+		Status:               "active",
+		Config:               chatConfig,
+		TokenUsage:           0,
+	}
+	chat.AddMessage(initialSystemMessage)
+	
+	if err := chat.Validate(); err != nil {
+		return nil,err
+	}
+	return chat,nil
+}
+
+func (c *Chat) Validate() error {
+	if c.UserID == "" {
+		return errors.New("user id is empty")
+	}
+
+	if c.Status != "active" && c.Status != "ended" {
+		return errors.New("invalid status")
+	}
+
+	if c.Config.Temperature < 0 || c.Config.Temperature > 2 {
+		return errors.New("invalid temperature must be (0 - 2)")
+	}
+
+	return nil
+}
+
+func (c *Chat) AddMessage(m *Message) error {
 	if c.Status == "ended" {
 		return errors.New("chat is ended, m=no more messages allowed")
 	}
@@ -32,24 +69,36 @@ func (c *Chat) AddMessage(m *Message)error {
 	//percorrer as msgs para verificar a quatidade de tokens, se nao excedeu o limite do modelo do chatgpt
 	for {
 		//verificar se tem tokens disponiveis no modelo, verificando a qnt de tokens armazenados no chat somando com a nova msg
-		if c.Config.Model.GetMaxToken() >= m.GetQTDTokens() + c.TokenUsage {
+		if c.Config.Model.GetMaxToken() >= m.GetQTDTokens()+c.TokenUsage {
 			c.Messages = append(c.Messages, m)
-			c.refreshTokenUsage()
+			c.RefreshTokenUsage()
 			break
 		}
 
 		//se nao tiver espaco para msg, apaga a mais antiga, e inseri na lista de menssagens apagadas
 		c.ErasedMessages = append(c.ErasedMessages, c.Messages[0])
-		c.Messages = c.Messages[1:]//apaga a msg 0
-		c.refreshTokenUsage()
+		c.Messages = c.Messages[1:] //apaga a msg 0
+		c.RefreshTokenUsage()
 	}
 	return nil
 }
 
-func (c *Chat) refreshTokenUsage() {
+func (c *Chat) GetMessages() []*Message {
+	return c.Messages
+}
+
+func (c *Chat) CountMessages() int {
+	return len(c.Messages)
+}
+
+func (c *Chat) EndChat() {
+	c.Status = "ended"
+}
+
+func (c *Chat) RefreshTokenUsage() {
 	c.TokenUsage = 0
 	for m := range c.Messages {
-		//percorrer todas menssagens para somar a quantidade de tokens
-		c.TokenUsage = c.Messages[m].GetQTDTokens()
+		//percorrer todas menssagens para somar a quantidade de tokens que cada msg tem
+		c.TokenUsage += c.Messages[m].GetQTDTokens()
 	}
 }
