@@ -63,7 +63,7 @@ func (usecase *ChatCompletionUseCase) Execute(ctx context.Context, userInput Cha
 			if err != nil {
 				return nil, errors.New("error to create the chat: " + err.Error())
 			}
-			//inseri o novo chat no db
+			//inserir o novo chat no db
 			err = usecase.Gateway.CreateChat(ctx, chat)
 			if err != nil {
 				return nil, errors.New("error to save the chat on db: " + err.Error())
@@ -113,7 +113,7 @@ func (usecase *ChatCompletionUseCase) Execute(ctx context.Context, userInput Cha
 	}
 
 	//observar a msg de resposta do chat gpt conforme ele envia
-	var fullResponse strings.Builder
+	var fullResponse strings.Builder//strings.builder() permiter adicionar mais dados a string
 	for {
 		response, err := respStream.Recv()
 		// erro que indica que a msg acabou
@@ -132,11 +132,11 @@ func (usecase *ChatCompletionUseCase) Execute(ctx context.Context, userInput Cha
 			UserID:  userInput.UserID,
 			Content: fullResponse.String(),
 		}
-		//inseri a saida no canal para ser enviado por outra thread, que sera utilizado com grpc para saida
+		//inserir a saida no canal, para ser enviado por outra thread, que sera utilizado com grpc para saida
 		usecase.Stream <- r
 	}
 
-	//msg para ser salva no db
+	//criar msgs igual ao contexto de msgs enviadas ao chat para ser salva no db
 	assistant, err := entity.NewMessage("assistant", fullResponse.String(), chat.Config.Model)
 	if err != nil {
 		return nil, errors.New("error to create new message: " + err.Error())
