@@ -8,6 +8,14 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/j178/tiktoken-go v0.2.1
 	github.com/spf13/viper v1.16.0
+	google.golang.org/grpc v1.55.0
+	google.golang.org/protobuf v1.30.0
+)
+
+require (
+	github.com/golang/protobuf v1.5.3 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 )
 
 require (
