@@ -16,6 +16,8 @@ type WebServer struct {
 func NewWebServer(port string) *WebServer {
 	return &WebServer{
 		WebServerPort: port,
+		Router: chi.NewRouter(),
+		Handlers: make(map[string]http.HandlerFunc),
 	}
 }
 
